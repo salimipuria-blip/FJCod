@@ -92,7 +92,7 @@
 | ابزار | کاربرد |
 |---|---|
 | UI/UX Pro Max | تولید سیستم طراحی (`design-system/cham/MASTER.md`) |
-| Figma | فایل سیستم طراحی و توکن‌ها |
-| Canva | دارایی‌های بصری برند |
-| Vercel | استقرار نسخهٔ وب |
+| Figma | فایل سیستم طراحی و ۴۳ توکن: https://www.figma.com/design/QIeIc71b08ytkk0OYqVQw7 |
+| Canva | پست معرفی اینستاگرام: https://canva.link/b2bajbl7994q4bv |
+| Vercel | نسخهٔ زنده: https://cham-store-os.vercel.app (هر push خودکار مستقر می‌شود) |
 | Higgsfield | در این نشست متصل نبود؛ برای ویدیوی معرفی برند در فاز ۱ |

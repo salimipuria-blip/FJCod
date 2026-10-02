@@ -76,7 +76,7 @@ export function Staff() {
               ))}
               <tr>
                 <td>سقف تخفیف</td>
-                {ROLE_ORDER.map((r) => <td key={r} className="num">{fa(db.settings.discountLimits[r])}٪</td>)}
+                {ROLE_ORDER.map((r) => <td key={r}><span className="badge gold">{fa(db.settings.discountLimits[r])}٪</span></td>)}
               </tr>
             </tbody>
           </table>

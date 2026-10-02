@@ -16,7 +16,7 @@ npm run check      # تایپ‌چک + تست واحد + بیلد
 npm run build && npm run e2e   # تست مرورگر سرتاسری (۱۹ سناریو)
 ```
 
-استقرار: پروژه آمادهٔ **Vercel** است (`vercel.json`). خروجی ایستا در `dist/`.
+نسخهٔ زنده: **https://cham-store-os.vercel.app** — هر push روی این شاخه خودکار روی Vercel مستقر می‌شود.
 
 ## ورود: پوزیشن + رمز
 
