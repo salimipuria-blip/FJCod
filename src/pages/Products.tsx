@@ -31,7 +31,6 @@ export function Products() {
     <>
       <div className="page-head">
         <div>
-          <h2>کالا و انبار</h2>
           <p>{fa(db.products.length)} کالا در {fa(categories.length - 1)} دسته</p>
         </div>
         {canEdit && <button className="btn btn-primary" onClick={() => setEdit('new')} data-testid="new-product"><PackagePlus size={18} /> کالای جدید</button>}

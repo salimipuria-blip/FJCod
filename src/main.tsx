@@ -1,13 +1,9 @@
 import { StrictMode, Component, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import '@fontsource/vazirmatn/300.css';
-import '@fontsource/vazirmatn/400.css';
-import '@fontsource/vazirmatn/600.css';
-import '@fontsource/vazirmatn/700.css';
-import '@fontsource/vazirmatn/800.css';
-import '@fontsource/vazirmatn/900.css';
-import '@fontsource/cormorant/500.css';
-import '@fontsource/cormorant/600.css';
+import '@fontsource-variable/readex-pro/wght.css';
+import '@fontsource/markazi-text/600.css';
+import '@fontsource/markazi-text/700.css';
+import '@fontsource-variable/bodoni-moda/wght.css';
 import './styles/app.css';
 import App from './App';
 

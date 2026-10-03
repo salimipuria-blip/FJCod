@@ -4,7 +4,7 @@ import { can, closeShift, currentUser, expectedCash, openShift, openShiftOf, use
 import { saleNet } from '../core/sales';
 import { fa, jDateTime, parseNum, toman } from '../lib/format';
 import { Empty, Field, Kpi, Modal, run } from '../components/ui';
-import { METHOD_LABEL } from './POS';
+import { METHOD_LABEL } from '../lib/format';
 import type { PaymentMethod } from '../core/types';
 
 export function Shifts() {
@@ -24,13 +24,6 @@ export function Shifts() {
 
   return (
     <>
-      <div className="page-head">
-        <div>
-          <h2>شیفت و صندوق</h2>
-          <p>باز کردن شیفت، تطبیق نقدینگی و ثبت اختلاف صندوق</p>
-        </div>
-      </div>
-
       {can(user.role, 'shifts.own') && (
         shift ? (
           <>

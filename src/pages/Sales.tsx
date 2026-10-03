@@ -6,7 +6,8 @@ import { refundedAmount, refundedQty, saleNet, unitPaid } from '../core/sales';
 import { sellerOf } from '../core/growth';
 import { addDays, fa, jDateTime, startOfDay, startOfJMonth, startOfWeek, toLatinDigits, toman } from '../lib/format';
 import { Empty, Field, Modal, run } from '../components/ui';
-import { METHOD_LABEL, ReceiptModal } from './POS';
+import { ReceiptModal } from './POS';
+import { METHOD_LABEL } from '../lib/format';
 
 type Range = 'today' | 'week' | 'month' | '90';
 const RANGES: { id: Range; title: string }[] = [
@@ -48,7 +49,6 @@ export function Sales() {
     <>
       <div className="page-head">
         <div>
-          <h2>فاکتورها</h2>
           <p>{all ? 'همهٔ فروش‌های فروشگاه' : 'فروش‌هایی که شما ثبت کرده یا مشاور آن بوده‌اید'} · {fa(list.length)} فاکتور · {toman(total)}</p>
         </div>
       </div>

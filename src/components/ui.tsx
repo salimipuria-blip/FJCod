@@ -158,12 +158,12 @@ export function Field({ label, children, hint }: { label: string; children: Reac
 export function Emblem({ size = 36 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden>
-      <rect width="64" height="64" rx="16" fill="#0c0a09" />
-      <g fill="none" stroke="#e6be62" strokeWidth="2.2" strokeLinejoin="round">
+      <rect width="64" height="64" rx="16" fill="#12213f" />
+      <g fill="none" stroke="#f3ebdd" strokeWidth="2.2" strokeLinejoin="round">
         <path d="M32 9l6.6 16.4L55 32l-16.4 6.6L32 55l-6.6-16.4L9 32l16.4-6.6z" />
         <path d="M15.7 15.7L32 22.4l16.3-6.7-6.7 16.3 6.7 16.3L32 41.6l-16.3 6.7 6.7-16.3z" opacity="0.6" />
       </g>
-      <circle cx="32" cy="32" r="4.5" fill="#e6be62" />
+      <circle cx="32" cy="32" r="4.5" fill="#d8c7a6" />
     </svg>
   );
 }

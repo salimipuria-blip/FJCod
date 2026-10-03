@@ -4,15 +4,21 @@ import { hashPassword } from '../lib/crypto';
 import { computeCart } from './sales';
 import { addDays, startOfDay } from '../lib/format';
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
-/** Default first-login passwords — every account is forced to change it on first sign-in. */
-export const DEFAULT_PASSWORDS: Record<RoleId, string> = {
-  owner: 'fjcod1405',
-  manager: '111111',
-  deputy: '222222',
-  cashier: '333333',
-  consultant: '444444',
+/**
+ * First-login passwords, unique per account because the password alone
+ * identifies the user. Every account must replace it on first sign-in.
+ */
+export const DEFAULT_PASSWORDS: Record<string, string> = {
+  'u-owner': 'fjcod1405',
+  'u-manager': '111111',
+  'u-deputy': '222222',
+  'u-cashier-1': '333331',
+  'u-cashier-2': '333332',
+  'u-cons-1': '444441',
+  'u-cons-2': '444442',
+  'u-cons-3': '444443',
 };
 
 export function defaultSettings(): Settings {
@@ -53,14 +59,12 @@ function makeUser(id: string, name: string, role: RoleId, now: number, extra: Pa
     name,
     role,
     salt,
-    passwordHash: hashPassword(DEFAULT_PASSWORDS[role], salt),
+    passwordHash: hashPassword(DEFAULT_PASSWORDS[id], salt),
     active: true,
     mustChangePassword: true,
     monthlyTarget: 0,
     commissionPct: 0,
     createdAt: now,
-    failedAttempts: 0,
-    lockedUntil: 0,
     ...extra,
   };
 }
@@ -218,6 +222,7 @@ export function seedDemo(now: number): DB {
     stockMoves: [],
     audit: [{ id: 'a-init', at: now, userId: null, action: 'system.init', detail: 'راه‌اندازی اولیه با داده‌های نمایشی' }],
     saleCounter: counter,
+    authGuard: { fails: 0, lockedUntil: 0 },
   };
 }
 

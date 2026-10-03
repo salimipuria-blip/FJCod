@@ -12,7 +12,8 @@ mkdirSync(SHOTS, { recursive: true });
 const candidates = [process.env.CHROMIUM_PATH, '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'].filter(Boolean);
 const executablePath = candidates.find((p) => existsSync(p));
 
-const server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'pipe' });
+// Launch vite directly (not via npx) so server.kill() stops the real process.
+const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'pipe' });
 await new Promise((resolve, reject) => {
   const t = setTimeout(() => reject(new Error('preview server timeout')), 20000);
   server.stdout.on('data', (d) => String(d).includes(String(PORT)) && (clearTimeout(t), resolve()));
@@ -39,10 +40,8 @@ async function newPage(viewport = { width: 1440, height: 900 }, colorScheme = 'l
   return page;
 }
 
-async function login(page, role, password, userName) {
+async function login(page, password) {
   await page.goto(BASE);
-  await page.click(`[data-role="${role}"]`);
-  if (userName) await page.getByRole('button', { name: userName }).click();
   await page.fill('input[name="password"]', password);
   await page.click('button[type="submit"]');
 }
@@ -56,21 +55,23 @@ async function setNewPassword(page, pwd) {
 
 const page = await newPage();
 
-await step('login screen renders all five positions', async () => {
+await step('login screen shows only the password field', async () => {
   await page.goto(BASE);
-  for (const r of ['owner', 'manager', 'deputy', 'cashier', 'consultant']) await page.waitForSelector(`[data-role="${r}"]`);
+  await page.waitForSelector('input[name="password"]');
+  if (await page.locator('input').count() !== 1) throw new Error('login must have exactly one input');
   await page.screenshot({ path: `${SHOTS}/01-login.png` });
 });
 
 await step('wrong password shows an error', async () => {
-  await login(page, 'owner', 'wrong-pass');
+  await login(page, 'wrong-pass');
   await page.getByRole('alert').waitFor();
 });
 
-await step('owner logs in, must change password, sees dashboard', async () => {
-  await login(page, 'owner', 'fjcod1405');
+await step('owner logs in by password, must change it, sees owner panel', async () => {
+  await login(page, 'fjcod1405');
   await setNewPassword(page, 'owner-2026');
   await page.getByRole('heading', { name: 'داشبورد' }).waitFor();
+  await page.waitForSelector('[data-nav="system"]'); // owner-only navigation proves the position
   await page.waitForSelector('.chart .bar');
   await page.screenshot({ path: `${SHOTS}/02-dashboard-owner.png`, fullPage: true });
 });
@@ -85,12 +86,13 @@ for (const nav of ['growth', 'customers', 'reports', 'products', 'staff', 'setti
 
 await step('owner logs out', async () => {
   await page.click('[data-testid="logout"]');
-  await page.waitForSelector('[data-role="owner"]');
+  await page.waitForSelector('input[name="password"]');
 });
 
 await step('consultant builds a cart and sends it to the register', async () => {
-  await login(page, 'consultant', '444444', 'مشاور ۱ — سارا');
+  await login(page, '444441');
   await setNewPassword(page, 'sara-2026');
+  if (await page.locator('[data-nav="staff"]').count()) throw new Error('consultant must not see staff management');
   await page.click('[data-nav="pos"]');
   await page.locator('[data-testid="product-tile"]').first().click();
   await page.locator('[data-testid="product-tile"]').nth(1).click();
@@ -102,7 +104,7 @@ await step('consultant builds a cart and sends it to the register', async () => 
 });
 
 await step('cashier opens shift, loads queued cart, pays and prints receipt', async () => {
-  await login(page, 'cashier', '333333', 'صندوقدار ۱');
+  await login(page, '333331');
   await setNewPassword(page, 'cash-2026');
   await page.click('[data-nav="pos"]');
   await page.fill('input[inputmode="numeric"]', '۵۰۰۰۰۰');
@@ -141,20 +143,20 @@ await step('cashier closes the shift', async () => {
 });
 
 await step('manager, deputy logins + dark mode + mobile layout', async () => {
-  await login(page, 'manager', '111111');
+  await login(page, '111111');
   await setNewPassword(page, 'mgr-2026x');
   await page.click('[data-nav="system"]');
   await page.getByText('مدیریت اشتراک چام').waitFor({ state: 'detached', timeout: 1000 }).catch(() => {});
   if (await page.getByText('مدیریت اشتراک چام').count()) throw new Error('manager must not see license controls');
   await page.click('[data-testid="logout"]');
-  await login(page, 'deputy', '222222');
+  await login(page, '222222');
   await setNewPassword(page, 'dep-2026x');
   await page.click('[data-testid="logout"]');
 
   const dark = await newPage({ width: 1440, height: 900 }, 'dark');
   await dark.goto(BASE);
   await dark.evaluate(() => localStorage.setItem('cham.theme', 'dark'));
-  await login(dark, 'owner', 'fjcod1405');
+  await login(dark, 'fjcod1405');
   await setNewPassword(dark, 'owner-2026');
   await dark.waitForSelector('.chart .bar');
   await dark.screenshot({ path: `${SHOTS}/06-dashboard-dark.png`, fullPage: true });
@@ -164,7 +166,7 @@ await step('manager, deputy logins + dark mode + mobile layout', async () => {
   await mobile.screenshot({ path: `${SHOTS}/07-login-mobile.png`, fullPage: true });
   const overflow = await mobile.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
   if (overflow) throw new Error('horizontal overflow on mobile login');
-  await login(mobile, 'owner', 'fjcod1405');
+  await login(mobile, 'fjcod1405');
   await setNewPassword(mobile, 'owner-2026');
   await mobile.waitForSelector('.chart .bar');
   const overflow2 = await mobile.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);

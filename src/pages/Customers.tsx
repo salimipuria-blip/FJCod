@@ -32,7 +32,6 @@ export function Customers() {
     <>
       <div className="page-head">
         <div>
-          <h2>باشگاه مشتریان</h2>
           <p>امتیاز هر {tomanShort(db.settings.tomanPerPoint)} تومان خرید = ۱ امتیاز · ارزش هر امتیاز {toman(db.settings.pointValue)}</p>
         </div>
         {canEdit && <button className="btn btn-primary" onClick={() => setEdit('new')}><UserPlus size={18} /> مشتری جدید</button>}

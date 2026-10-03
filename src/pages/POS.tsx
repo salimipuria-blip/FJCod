@@ -5,10 +5,8 @@ import type { Customer, PaymentMethod, Sale } from '../core/types';
 import { buildLines, can, checkout, currentUser, holdCart, openShift, openShiftOf, removeHeldCart, saveCustomer, useStore } from '../core/store';
 import { computeCart } from '../core/sales';
 import { customerStats, tierOf } from '../core/growth';
-import { fa, fa0, jDateTime, parseNum, toLatinDigits, toman } from '../lib/format';
+import { METHOD_LABEL, fa, fa0, jDateTime, parseNum, toLatinDigits, toman } from '../lib/format';
 import { Empty, Field, Modal, run, toast } from '../components/ui';
-
-export const METHOD_LABEL: Record<PaymentMethod, string> = { cash: 'نقد', card: 'کارتخوان', transfer: 'کارت‌به‌کارت', credit: 'نسیه' };
 
 interface Line {
   productId: string;
@@ -114,9 +112,9 @@ export function POS({ go }: { go: (p: PageId) => void }) {
   if (isCashier && !shift) {
     return (
       <div className="card card-pad stack" style={{ maxWidth: 520, margin: '40px auto', textAlign: 'center', alignItems: 'center' }}>
-        <Wallet size={40} color="var(--gold)" />
+        <Wallet size={40} color="var(--accent)" />
         <h2>شیفت صندوق باز نیست</h2>
-        <p className="muted" style={{ margin: 0 }}>برای ثبت فروش، موجودی نقد اول شیفت را وارد کنید. بستن شیفت و تطبیق صندوق از صفحهٔ «شیفت و صندوق» انجام می‌شود.</p>
+        <p className="muted" style={{ margin: 0 }}>برای ثبت فروش، موجودی نقد اول شیفت را وارد کنید.</p>
         <div style={{ width: '100%', maxWidth: 320 }}>
           <Field label="موجودی نقد اول شیفت (تومان)">
             <input className="input num" inputMode="numeric" value={openingCash} onChange={(e) => setOpeningCash(e.target.value)} placeholder="۰" />
@@ -137,7 +135,7 @@ export function POS({ go }: { go: (p: PageId) => void }) {
         {isCashier && queue.length > 0 && (
           <div className="card">
             <div className="card-head">
-              <h3 className="row" style={{ gap: 8 }}><Inbox size={16} color="var(--gold)" /> سبدهای ارسالی مشاوران ({fa(queue.length)})</h3>
+              <h3 className="row" style={{ gap: 8 }}><Inbox size={16} color="var(--accent)" /> سبدهای ارسالی مشاوران ({fa(queue.length)})</h3>
             </div>
             <div className="list">
               {queue.map((h) => {
@@ -206,7 +204,7 @@ export function POS({ go }: { go: (p: PageId) => void }) {
 
       <aside className="card cart" aria-label="سبد خرید">
         <div className="card-head">
-          <h3 className="row" style={{ gap: 8 }}><ShoppingBag size={16} color="var(--gold)" /> سبد خرید {heldCartId && <span className="badge gold">از صف مشاور</span>}</h3>
+          <h3 className="row" style={{ gap: 8 }}><ShoppingBag size={16} color="var(--accent)" /> سبد خرید {heldCartId && <span className="badge accent">از صف مشاور</span>}</h3>
           {lines.length > 0 && <button className="btn btn-sm btn-ghost btn-danger" onClick={reset}><X size={14} /> خالی کردن</button>}
         </div>
 
@@ -214,7 +212,7 @@ export function POS({ go }: { go: (p: PageId) => void }) {
           {customer ? (
             <div className="row between">
               <div className="row" style={{ gap: 8 }}>
-                <UserRound size={18} color="var(--gold)" />
+                <UserRound size={18} color="var(--accent)" />
                 <div>
                   <b>{customer.name}</b>{' '}
                   <span className={`badge tier-${tierOf(customerStats(db.sales).get(customer.id)?.spend ?? 0).id}`}>{tierOf(customerStats(db.sales).get(customer.id)?.spend ?? 0).title}</span>
@@ -287,7 +285,7 @@ export function POS({ go }: { go: (p: PageId) => void }) {
             </div>
             <div className="card-body row" style={{ gap: 8 }}>
               {isCashier ? (
-                <button className="btn btn-gold btn-lg" style={{ flex: 1 }} onClick={() => setPaying(true)} disabled={overLimit} data-testid="pay">
+                <button className="btn btn-accent btn-lg" style={{ flex: 1 }} onClick={() => setPaying(true)} disabled={overLimit} data-testid="pay">
                   <CreditCard size={18} /> پرداخت و صدور فاکتور
                 </button>
               ) : null}
@@ -371,7 +369,7 @@ export function CustomerPicker({ onClose, onPick }: { onClose: () => void; onPic
             ) : (
               results.map((c) => (
                 <button key={c.id} className="list-row" style={{ background: 'none', border: 0, borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'right', width: '100%' }} onClick={() => onPick(c)}>
-                  <UserRound size={16} color="var(--gold)" />
+                  <UserRound size={16} color="var(--accent)" />
                   <span className="grow">{c.name}</span>
                   <span className="subtle num">{fa0(c.phone)}</span>
                 </button>
@@ -406,7 +404,7 @@ function PayModal({ total, allowCredit, onClose, onPay }: { total: number; allow
     <Modal
       title={`پرداخت — ${toman(total)}`}
       onClose={onClose}
-      footer={<><button className="btn btn-gold btn-lg" onClick={submit} disabled={!valid} data-testid="confirm-pay">ثبت نهایی فاکتور</button><button className="btn btn-ghost" onClick={onClose}>بازگشت</button></>}
+      footer={<><button className="btn btn-accent btn-lg" onClick={submit} disabled={!valid} data-testid="confirm-pay">ثبت نهایی فاکتور</button><button className="btn btn-ghost" onClick={onClose}>بازگشت</button></>}
     >
       <div className="chips">
         {methods.map((m) => <button key={m} className="chip" onClick={() => setOnly(m)}>همه با {METHOD_LABEL[m]}</button>)}
@@ -418,7 +416,7 @@ function PayModal({ total, allowCredit, onClose, onPay }: { total: number; allow
           </Field>
         ))}
       </div>
-      <div className={`badge ${diff < 0 ? 'bad' : diff > 0 ? 'gold' : 'good'}`} style={{ alignSelf: 'flex-start', fontSize: 14, padding: '4px 14px' }}>
+      <div className={`badge ${diff < 0 ? 'bad' : diff > 0 ? 'accent' : 'good'}`} style={{ alignSelf: 'flex-start', fontSize: 14, padding: '4px 14px' }}>
         {diff < 0 ? `باقی‌مانده: ${toman(-diff)}` : diff > 0 ? `باقی پول نقد مشتری: ${toman(diff)}` : 'مبلغ کامل است'}
       </div>
       {diff > 0 && (parseNum(amounts.cash) || 0) < diff && <span className="error-text">مازاد پرداخت فقط از محل نقد قابل برگشت است.</span>}

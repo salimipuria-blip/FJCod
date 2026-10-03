@@ -5,7 +5,7 @@ import { aggregate, inRange, sellerOf, topProducts } from '../core/growth';
 import { saleNet, saleProfit } from '../core/sales';
 import { addDays, addJMonths, fa, jDateShort, startOfDay, startOfJMonth, startOfWeek, tomanShort } from '../lib/format';
 import { Kpi } from '../components/ui';
-import { METHOD_LABEL } from './POS';
+import { METHOD_LABEL } from '../lib/format';
 import type { PaymentMethod } from '../core/types';
 
 type Range = 'today' | 'week' | 'month' | 'lastMonth' | '90';
@@ -82,7 +82,6 @@ export function Reports() {
     <>
       <div className="page-head">
         <div>
-          <h2>گزارش‌ها</h2>
           <p>{jDateShort(from)} تا {jDateShort(Math.min(to, now))}</p>
         </div>
         <button className="btn" onClick={exportCsv} disabled={!r.sales.length}><Download size={16} /> خروجی اکسل (CSV)</button>

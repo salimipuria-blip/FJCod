@@ -3,7 +3,7 @@ import type { CartLine } from './sales';
 import { computeCart, paymentsBalance, refundedQty, unitPaid } from './sales';
 import type { Customer, DB, HeldCart, Payment, Product, RoleId, Sale, Settings, Shift, User } from './types';
 import { can, canManageRole, type Permission } from './permissions';
-import { SCHEMA_VERSION, cleanStart, defaultSettings, seedDemo } from './seed';
+import { DEFAULT_PASSWORDS, SCHEMA_VERSION, cleanStart, defaultSettings, seedDemo } from './seed';
 import { hashPassword, randomSalt, uid, verifyPassword } from '../lib/crypto';
 import { addDays } from '../lib/format';
 
@@ -66,6 +66,11 @@ export function isValidDB(x: unknown): x is DB {
 /** Fill any missing fields so older backups keep working after upgrades. */
 export function migrate(d: DB): DB {
   const base = defaultSettings();
+  // v1 → v2: login became password-only, so shared role passwords had to become unique.
+  // Accounts that never left their default password get the new per-account default.
+  const users = (d.schema ?? 1) < 2
+    ? d.users.map((u) => (u.mustChangePassword && DEFAULT_PASSWORDS[u.id] ? { ...u, salt: `${u.id}-salt`, passwordHash: hashPassword(DEFAULT_PASSWORDS[u.id], `${u.id}-salt`) } : u))
+    : d.users;
   return {
     ...d,
     schema: SCHEMA_VERSION,
@@ -75,6 +80,8 @@ export function migrate(d: DB): DB {
     stockMoves: d.stockMoves ?? [],
     audit: d.audit ?? [],
     saleCounter: d.saleCounter ?? 1000 + d.sales.length,
+    users,
+    authGuard: d.authGuard ?? { fails: 0, lockedUntil: 0 },
   };
 }
 
@@ -199,34 +206,40 @@ export const MIN_PASSWORD = 6;
 const MAX_ATTEMPTS = 5;
 const LOCK_MS = 60_000;
 
-export function login(userId: string, password: string): { ok: true; mustChange: boolean } | { ok: false; error: string } {
-  const user = db.users.find((u) => u.id === userId);
-  if (!user || !user.active) return { ok: false, error: 'کاربر یافت نشد یا غیرفعال است.' };
+/**
+ * Password-only sign-in: the password itself identifies the user (and so the
+ * position). Passwords are therefore kept unique across all accounts.
+ * Brute force is throttled globally because no account is chosen up front.
+ */
+export function login(password: string): { ok: true; mustChange: boolean; user: User } | { ok: false; error: string } {
   const now = Date.now();
-  if (user.lockedUntil > now) {
-    return { ok: false, error: `به‌دلیل تلاش‌های ناموفق، ${Math.ceil((user.lockedUntil - now) / 1000).toLocaleString('fa-IR')} ثانیه صبر کنید.` };
+  const guard = db.authGuard;
+  if (guard.lockedUntil > now) {
+    return { ok: false, error: `به‌دلیل تلاش‌های ناموفق، ${Math.ceil((guard.lockedUntil - now) / 1000).toLocaleString('fa-IR')} ثانیه صبر کنید.` };
   }
-  if (!verifyPassword(password, user.salt, user.passwordHash)) {
+  const matches = password ? db.users.filter((u) => u.active && verifyPassword(password, u.salt, u.passwordHash)) : [];
+  if (matches.length !== 1) {
     mutate((d) => {
-      const u = d.users.find((x) => x.id === userId)!;
-      u.failedAttempts += 1;
-      if (u.failedAttempts >= MAX_ATTEMPTS) {
-        u.lockedUntil = now + LOCK_MS;
-        u.failedAttempts = 0;
+      d.authGuard.fails += 1;
+      if (d.authGuard.fails >= MAX_ATTEMPTS) {
+        d.authGuard.lockedUntil = now + LOCK_MS;
+        d.authGuard.fails = 0;
       }
-      d.audit.push({ id: uid('a-'), at: now, userId, action: 'auth.fail', detail: 'رمز نادرست' });
+      d.audit.push({ id: uid('a-'), at: now, userId: null, action: 'auth.fail', detail: matches.length > 1 ? 'رمز مشترک بین چند کاربر' : 'رمز نادرست' });
     });
-    return { ok: false, error: 'رمز عبور نادرست است.' };
+    return {
+      ok: false,
+      error: matches.length > 1 ? 'این رمز برای بیش از یک کاربر ثبت شده است؛ مدیر باید رمز را بازنشانی کند.' : 'رمز عبور نادرست است.',
+    };
   }
-  session = { userId };
-  storageSet(SESSION_KEY, userId, true);
+  const user = matches[0];
+  session = { userId: user.id };
+  storageSet(SESSION_KEY, user.id, true);
   mutate((d) => {
-    const u = d.users.find((x) => x.id === userId)!;
-    u.failedAttempts = 0;
-    u.lockedUntil = 0;
-    d.audit.push({ id: uid('a-'), at: now, userId, action: 'auth.login', detail: 'ورود به سامانه' });
+    d.authGuard = { fails: 0, lockedUntil: 0 };
+    d.audit.push({ id: uid('a-'), at: now, userId: user.id, action: 'auth.login', detail: 'ورود به سامانه' });
   });
-  return { ok: true, mustChange: user.mustChangePassword && db.settings.forcePasswordChange };
+  return { ok: true, mustChange: user.mustChangePassword && db.settings.forcePasswordChange, user };
 }
 
 export function logout() {
@@ -239,19 +252,24 @@ export function logout() {
 export function changeOwnPassword(current: string, next: string) {
   const u = requireUser();
   if (!verifyPassword(current, u.salt, u.passwordHash)) fail('رمز فعلی نادرست است.');
+  if (verifyPassword(next, u.salt, u.passwordHash)) fail('رمز جدید باید با رمز فعلی متفاوت باشد.');
   setPassword(u.id, next, false);
 }
 
-function setPassword(userId: string, next: string, forceChange: boolean) {
+/** Throws unless the password is long enough and not used by any other account. */
+function assertPasswordUsable(next: string, ownerId: string | null) {
   if (next.length < MIN_PASSWORD) fail(`رمز باید حداقل ${MIN_PASSWORD.toLocaleString('fa-IR')} کاراکتر باشد.`);
+  // Deliberately vague: never confirm that another account uses this password.
+  if (db.users.some((u) => u.id !== ownerId && verifyPassword(next, u.salt, u.passwordHash))) fail('این رمز قابل استفاده نیست؛ رمز دیگری انتخاب کنید.');
+}
+
+function setPassword(userId: string, next: string, forceChange: boolean) {
+  assertPasswordUsable(next, userId);
   mutate((d) => {
     const u = d.users.find((x) => x.id === userId) ?? fail('کاربر یافت نشد.');
-    if (!forceChange && verifyPassword(next, u.salt, u.passwordHash)) fail('رمز جدید باید با رمز فعلی متفاوت باشد.');
     u.salt = randomSalt();
     u.passwordHash = hashPassword(next, u.salt);
     u.mustChangePassword = forceChange;
-    u.failedAttempts = 0;
-    u.lockedUntil = 0;
     audit(d, 'auth.password', `تغییر رمز: ${u.name}`);
   });
 }
@@ -271,6 +289,7 @@ export function saveUser(input: { id?: string; name: string; role: RoleId; activ
     if (existing.role === 'owner' && (input.role !== 'owner' || !input.active) && db.users.filter((u) => u.role === 'owner' && u.active).length <= 1)
       fail('سیستم باید حداقل یک مالک فعال داشته باشد.');
     if (existing.id === actor.id && !input.active) fail('نمی‌توانید حساب خودتان را غیرفعال کنید.');
+    if (input.password) assertPasswordUsable(input.password, existing.id);
     mutate((d) => {
       const u = d.users.find((x) => x.id === input.id)!;
       Object.assign(u, { name, role: input.role, active: input.active, monthlyTarget: Math.max(0, input.monthlyTarget || 0), commissionPct: Math.max(0, Math.min(100, input.commissionPct || 0)) });
@@ -278,7 +297,8 @@ export function saveUser(input: { id?: string; name: string; role: RoleId; activ
     });
     if (input.password) setPassword(input.id, input.password, true);
   } else {
-    if (!input.password || input.password.length < MIN_PASSWORD) fail(`رمز اولیه باید حداقل ${MIN_PASSWORD.toLocaleString('fa-IR')} کاراکتر باشد.`);
+    const password = input.password || fail('رمز اولیه را وارد کنید.');
+    assertPasswordUsable(password, null);
     const salt = randomSalt();
     mutate((d) => {
       d.users.push({
@@ -286,14 +306,12 @@ export function saveUser(input: { id?: string; name: string; role: RoleId; activ
         name,
         role: input.role,
         salt,
-        passwordHash: hashPassword(input.password!, salt),
+        passwordHash: hashPassword(password, salt),
         active: input.active,
         mustChangePassword: true,
         monthlyTarget: Math.max(0, input.monthlyTarget || 0),
         commissionPct: Math.max(0, Math.min(100, input.commissionPct || 0)),
         createdAt: Date.now(),
-        failedAttempts: 0,
-        lockedUntil: 0,
       });
       audit(d, 'staff.create', name);
     });

@@ -24,10 +24,7 @@ export function SettingsPage() {
   return (
     <>
       <div className="page-head">
-        <div>
-          <h2>تنظیمات فروشگاه</h2>
-          <p>هویت، باشگاه مشتریان، کنترل تخفیف و امنیت</p>
-        </div>
+        <span />
         <button className="btn btn-primary" onClick={save} disabled={!dirty}><Save size={18} /> ذخیرهٔ تغییرات</button>
       </div>
 

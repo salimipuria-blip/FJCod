@@ -15,8 +15,6 @@ export interface User {
   /** Commission percent on net sales attributed to this user */
   commissionPct: number;
   createdAt: number;
-  failedAttempts: number;
-  lockedUntil: number;
 }
 
 export interface Product {
@@ -168,4 +166,6 @@ export interface DB {
   stockMoves: StockMove[];
   audit: AuditEntry[];
   saleCounter: number;
+  /** Global sign-in throttle (password-only login has no account to lock) */
+  authGuard: { fails: number; lockedUntil: number };
 }

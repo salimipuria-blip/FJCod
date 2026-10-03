@@ -1,5 +1,7 @@
 import { toJalaali, toGregorian, jalaaliMonthLength } from 'jalaali-js';
 
+import type { PaymentMethod } from '../core/types';
+
 const nf = new Intl.NumberFormat('fa-IR');
 const nf1 = new Intl.NumberFormat('fa-IR', { maximumFractionDigits: 1 });
 
@@ -120,3 +122,5 @@ export function jMonthName(ts: number): string {
 export function weekdayIndex(ts: number): number {
   return (new Date(ts).getDay() + 1) % 7;
 }
+
+export const METHOD_LABEL: Record<PaymentMethod, string> = { cash: 'نقد', card: 'کارتخوان', transfer: 'کارت‌به‌کارت', credit: 'نسیه' };

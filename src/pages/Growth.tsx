@@ -1,18 +1,11 @@
 import { useMemo, useState } from 'react';
-import { AlertTriangle, Flame, Gift, Lightbulb, Megaphone, Phone, Repeat, ShoppingBag, Target, TrendingUp, Trophy, UserPlus } from 'lucide-react';
+import { AlertTriangle, Flame, Lightbulb, Phone, Repeat, Target, TrendingUp, Trophy } from 'lucide-react';
 import { can, currentUser, markContacted, saveStoreTarget, useStore } from '../core/store';
 import { comparePeriod, growthStreak, insights, leaderboard, repeatRate, sellerOf, targetProgress, weeklySeries, winBackList } from '../core/growth';
 import { addDays, fa, fa0, jDate, jMonthName, parseNum, startOfJMonth, toman, tomanShort } from '../lib/format';
 import { BarChart } from '../components/charts';
 import { Delta, Empty, Field, Kpi, Modal, Progress, run } from '../components/ui';
 
-const LOOP = [
-  { icon: UserPlus, title: 'جذب', sub: 'ثبت هر مشتری در باشگاه' },
-  { icon: ShoppingBag, title: 'فروش', sub: 'سبد پیشنهادی مشاور' },
-  { icon: Gift, title: 'رضایت', sub: 'امتیاز و سطح وفاداری' },
-  { icon: Repeat, title: 'بازگشت', sub: 'دعوت مشتریان غایب' },
-  { icon: Megaphone, title: 'معرفی', sub: 'رشد دوباره، این بار بزرگ‌تر' },
-];
 
 export function Growth() {
   const { db } = useStore();
@@ -42,29 +35,14 @@ export function Growth() {
   return (
     <>
       <div className="page-head">
-        <div>
-          <h2>موتور رشد</h2>
-          <p>اهرم موفقیت چام: <b>رشد، و تکرار رشد</b> — هر هفته کمی بهتر از هفتهٔ قبل.</p>
-        </div>
+        <span />
         {can(user.role, 'targets.manage') && <button className="btn btn-primary" onClick={() => setTargetModal(true)}><Target size={18} /> تعیین هدف ماه</button>}
-      </div>
-
-      <div className="card card-pad">
-        <div className="loop">
-          {LOOP.map((s, i) => (
-            <div key={s.title} className="loop-step">
-              <s.icon size={22} />
-              <b>{fa(i + 1)}. {s.title}</b>
-              <small>{s.sub}</small>
-            </div>
-          ))}
-        </div>
       </div>
 
       <div className="grid grid-4">
         <div className="streak" style={{ gridColumn: 'span 1' }}>
           <div className="girih" aria-hidden />
-          <Flame size={30} color="#e6be62" />
+          <Flame size={30} />
           <div>
             <div className="streak-num">{fa(d.streak)}</div>
             <div style={{ fontSize: 13 }}>هفتهٔ پیاپی رشد</div>
@@ -97,7 +75,7 @@ export function Growth() {
           </div>
         </section>
         <section className="card card-pad stack" style={{ gap: 12 }}>
-          <b className="row" style={{ gap: 8 }}><Target size={16} color="var(--gold)" /> {storeWide ? 'هدف ماه فروشگاه' : 'هدف ماه شما'}</b>
+          <b className="row" style={{ gap: 8 }}><Target size={16} color="var(--accent)" /> {storeWide ? 'هدف ماه فروشگاه' : 'هدف ماه شما'}</b>
           {d.target.target > 0 ? (
             <>
               <div className="kpi-value">{fa(d.target.pct)}٪</div>
@@ -108,7 +86,7 @@ export function Growth() {
                 <span>پیش‌بینی پایان ماه: <b className="num">{toman(d.target.projected)}</b> ({fa(d.target.projectedPct)}٪)</span>
                 {d.target.pct < 100 && <span>نیاز روزانه برای {fa(d.target.daysLeft)} روز باقی‌مانده: <b className="num">{toman(d.target.dailyNeeded)}</b></span>}
               </div>
-              {!storeWide && me && <div className="badge gold" style={{ alignSelf: 'flex-start' }}>پورسانت تخمینی: {toman(me.commission)}</div>}
+              {!storeWide && me && <div className="badge accent" style={{ alignSelf: 'flex-start' }}>پورسانت تخمینی: {toman(me.commission)}</div>}
             </>
           ) : (
             <Empty icon={<Target size={26} />} title="هدفی تعریف نشده" />
@@ -119,7 +97,7 @@ export function Growth() {
       <div className="grid grid-2">
         <section className="card">
           <div className="card-head">
-            <h3 className="row" style={{ gap: 8 }}><Repeat size={16} color="var(--gold)" /> دعوت به بازگشت ({fa(d.winBack.length)})</h3>
+            <h3 className="row" style={{ gap: 8 }}><Repeat size={16} color="var(--accent)" /> دعوت به بازگشت ({fa(d.winBack.length)})</h3>
             <span className="subtle">بیش از {fa(db.settings.winBackDays)} روز بدون خرید</span>
           </div>
           {d.winBack.length === 0 ? (
@@ -143,14 +121,14 @@ export function Growth() {
 
         <section className="card">
           <div className="card-head">
-            <h3 className="row" style={{ gap: 8 }}><Trophy size={16} color="var(--gold)" /> جدول فروشندگان {jMonthName(now)}</h3>
+            <h3 className="row" style={{ gap: 8 }}><Trophy size={16} color="var(--accent)" /> جدول فروشندگان {jMonthName(now)}</h3>
           </div>
           <div className="table-wrap">
             <table className="table">
               <thead><tr><th>#</th><th>فروشنده</th><th className="num">فروش</th><th className="num">فاکتور</th><th>هدف</th><th className="num">پورسانت</th></tr></thead>
               <tbody>
                 {d.board.map((r, i) => (
-                  <tr key={r.user.id} style={r.user.id === user.id ? { background: 'var(--gold-soft)' } : undefined}>
+                  <tr key={r.user.id} style={r.user.id === user.id ? { background: 'var(--accent-soft)' } : undefined}>
                     <td className="num">{fa(i + 1)}</td>
                     <td>{r.user.name}</td>
                     <td className="num">{tomanShort(r.revenue)}</td>
@@ -167,7 +145,7 @@ export function Growth() {
 
       {storeWide && d.tips.length > 0 && (
         <section className="card">
-          <div className="card-head"><h3 className="row" style={{ gap: 8 }}><Lightbulb size={16} color="var(--gold)" /> اقدامات پیشنهادی</h3></div>
+          <div className="card-head"><h3 className="row" style={{ gap: 8 }}><Lightbulb size={16} color="var(--accent)" /> اقدامات پیشنهادی</h3></div>
           {d.tips.map((t, i) => (
             <div key={i} className={`insight ${t.tone}`}>
               <span className="dot">{t.tone === 'warn' ? <AlertTriangle size={16} /> : t.tone === 'good' ? <TrendingUp size={16} /> : <Lightbulb size={16} />}</span>

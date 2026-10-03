@@ -1,26 +1,36 @@
 import { describe, expect, it } from 'vitest';
 import * as store from '../src/core/store';
 import { saleNet } from '../src/core/sales';
+import { hashPassword, verifyPassword } from '../src/lib/crypto';
 
 const { getDB } = store;
-const idOf = (role: string) => getDB().users.find((u) => u.role === role)!.id;
 
 describe('store flows (in-memory storage fallback)', () => {
-  it('rejects wrong passwords and locks after 5 attempts', () => {
-    const id = idOf('deputy');
-    for (let i = 0; i < 4; i++) expect(store.login(id, 'nope').ok).toBe(false);
-    const fifth = store.login(id, 'nope');
-    expect(fifth.ok).toBe(false);
-    const locked = store.login(id, '222222');
+  it('identifies the user (and position) from the password alone', () => {
+    const res = store.login('222222');
+    expect(res.ok && res.user.role).toBe('deputy');
+    store.logout();
+    const c2 = store.login('333332');
+    expect(c2.ok && c2.user.id).toBe('u-cashier-2');
+    store.logout();
+  });
+
+  it('throttles globally after 5 wrong passwords', () => {
+    for (let i = 0; i < 5; i++) expect(store.login('nope-' + i).ok).toBe(false);
+    const locked = store.login('222222');
     expect(locked.ok).toBe(false);
+    if (!locked.ok) expect(locked.error).toMatch(/صبر/);
+    getDB().authGuard.lockedUntil = 0; // test-only reset of the throttle
   });
 
   it('cashier: forced password change, shift, checkout, change returned', () => {
-    const id = getDB().users.find((u) => u.id === 'u-cashier-1')!.id;
-    const res = store.login(id, '333333');
-    expect(res).toEqual({ ok: true, mustChange: true });
-    expect(() => store.changeOwnPassword('333333', '333333')).toThrow();
-    store.changeOwnPassword('333333', 'cash-9988');
+    const id = 'u-cashier-1';
+    const res = store.login('333331');
+    expect(res.ok && res.mustChange).toBe(true);
+    expect(() => store.changeOwnPassword('333331', '333331')).toThrow();
+    // a password already used by another account is refused (password = identity)
+    expect(() => store.changeOwnPassword('333331', '111111')).toThrow(/قابل استفاده نیست/);
+    store.changeOwnPassword('333331', 'cash-9988');
     expect(store.currentUser()!.mustChangePassword).toBe(false);
 
     const p = getDB().products.find((x) => x.stock > 3)!;
@@ -50,7 +60,7 @@ describe('store flows (in-memory storage fallback)', () => {
   });
 
   it('manager: refunds restock and respect remaining quantity', () => {
-    store.login(idOf('manager'), '111111');
+    store.login('111111');
     const s = getDB().sales.find((x) => x.refunds.length === 0 && x.items[0].qty >= 1)!;
     const pid = s.items[0].productId;
     const stock = getDB().products.find((p) => p.id === pid)!.stock;
@@ -62,13 +72,14 @@ describe('store flows (in-memory storage fallback)', () => {
     // manager cannot touch the license or create an owner
     expect(() => store.renewLicense('yearly')).toThrow();
     expect(() => store.saveUser({ name: 'x', role: 'owner', active: true, monthlyTarget: 0, commissionPct: 0, password: 'abcdef' })).toThrow();
+    expect(() => store.saveUser({ name: 'تکراری', role: 'cashier', active: true, monthlyTarget: 0, commissionPct: 0, password: 'cash-9988' })).toThrow();
     store.saveUser({ name: 'صندوقدار ۳', role: 'cashier', active: true, monthlyTarget: 0, commissionPct: 0, password: 'abcdef' });
     expect(getDB().users.some((u) => u.name === 'صندوقدار ۳' && u.mustChangePassword)).toBe(true);
     store.logout();
   });
 
   it('consultant: holds a cart for the cashier queue but cannot sell', () => {
-    store.login('u-cons-2', '444444');
+    store.login('444442');
     const p = getDB().products[0];
     expect(() => store.checkout({ lines: [{ productId: p.id, qty: 1 }], discount: 0, pointsRedeem: 0, customerId: null, consultantId: null, payments: [] })).toThrow(/مجوز/);
     store.holdCart({ label: 'پرو ۲', customerId: null, items: [{ productId: p.id, qty: 1 }] });
@@ -77,7 +88,7 @@ describe('store flows (in-memory storage fallback)', () => {
   });
 
   it('owner: license renewal, backup round-trip and clean start', () => {
-    store.login('u-owner', 'fjcod1405');
+    store.login('fjcod1405');
     const exp = getDB().license.expiresAt;
     store.renewLicense('monthly');
     expect(getDB().license.expiresAt).toBeGreaterThan(exp);
@@ -89,5 +100,21 @@ describe('store flows (in-memory storage fallback)', () => {
     expect(getDB().sales.length).toBeGreaterThan(0);
     expect(store.currentUser()?.role).toBe('owner');
     expect(store.licenseState(getDB()).state).toBe('active');
+  });
+
+  it('migrates v1 data: shared default passwords become unique per account', () => {
+    const v1 = JSON.parse(JSON.stringify(getDB()));
+    v1.schema = 1;
+    delete v1.authGuard;
+    const c2 = v1.users.find((u: { id: string }) => u.id === 'u-cashier-2');
+    c2.mustChangePassword = true;
+    c2.salt = 'old';
+    c2.passwordHash = hashPassword('333333', 'old'); // v1 shared cashier default
+    const m = store.migrate(v1);
+    const migrated = m.users.find((u) => u.id === 'u-cashier-2')!;
+    expect(verifyPassword('333333', migrated.salt, migrated.passwordHash)).toBe(false);
+    expect(verifyPassword('333332', migrated.salt, migrated.passwordHash)).toBe(true);
+    expect(m.authGuard).toEqual({ fails: 0, lockedUntil: 0 });
+    expect(m.schema).toBe(2);
   });
 });

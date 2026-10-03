@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { BadgeCheck, Database, Download, FileClock, RefreshCcw, Rocket, ShieldCheck, Upload } from 'lucide-react';
+import { BadgeCheck, Database, Download, RefreshCcw, Rocket, ShieldCheck, Upload } from 'lucide-react';
 import { can, currentUser, exportBackup, importBackup, licenseState, renewLicense, resetToDemo, startClean, useStore } from '../core/store';
 import { fa, jDate, jDateShort, jDateTime } from '../lib/format';
 import { Kpi, Modal, run } from '../components/ui';
@@ -43,7 +43,6 @@ export function SystemPage() {
     <>
       <div className="page-head">
         <div>
-          <h2>سیستم و مجوز</h2>
           <p>مالک سیستم: <b className="latin">FJCOD</b> · بهره‌بردار: <b>{db.license.licensee}</b></p>
         </div>
       </div>
@@ -52,7 +51,6 @@ export function SystemPage() {
         <Kpi icon={<BadgeCheck size={16} />} label="وضعیت اشتراک" value={{ active: 'فعال', expiring: 'رو به اتمام', grace: 'دورهٔ مهلت', expired: 'منقضی' }[lic.state]} foot={`تا ${jDate(db.license.expiresAt)} · ${fa(Math.max(0, lic.daysLeft))} روز`} />
         <Kpi icon={<ShieldCheck size={16} />} label="طرح" value={db.license.plan === 'yearly' ? 'سالانه' : 'ماهانه'} foot={`شروع: ${jDate(db.license.startedAt)}`} />
         <Kpi icon={<Database size={16} />} label="حجم داده" value={fa(storageKb)} unit="KB" foot={`${fa(db.sales.length)} فاکتور · ${fa(db.products.length)} کالا`} />
-        <Kpi icon={<FileClock size={16} />} label="رویدادهای ممیزی" value={fa(db.audit.length)} />
       </div>
 
       {can(user.role, 'system.license') && (
@@ -61,7 +59,7 @@ export function SystemPage() {
           <p className="muted" style={{ margin: 0 }}>پس از دریافت هزینه از {db.license.licensee}، اشتراک را تمدید کنید. پس از انقضا، {fa(db.license.graceDays)} روز دورهٔ مهلت وجود دارد و سپس ثبت فروش متوقف می‌شود.</p>
           <div className="row">
             <button className="btn btn-primary" onClick={() => run(() => renewLicense('monthly'), 'اشتراک ۳۰ روز تمدید شد.')}>تمدید ماهانه (+۳۰ روز)</button>
-            <button className="btn btn-gold" onClick={() => run(() => renewLicense('yearly'), 'اشتراک ۳۶۵ روز تمدید شد.')}>تمدید سالانه (+۳۶۵ روز)</button>
+            <button className="btn btn-accent" onClick={() => run(() => renewLicense('yearly'), 'اشتراک ۳۶۵ روز تمدید شد.')}>تمدید سالانه (+۳۶۵ روز)</button>
           </div>
         </section>
       )}
@@ -76,7 +74,7 @@ export function SystemPage() {
         </div>
         <hr className="sep" />
         <div className="row">
-          <button className="btn btn-gold" onClick={() => setConfirm('clean')}><Rocket size={16} /> شروع کار واقعی (حذف داده‌های نمایشی)</button>
+          <button className="btn btn-accent" onClick={() => setConfirm('clean')}><Rocket size={16} /> شروع کار واقعی (حذف داده‌های نمایشی)</button>
           <button className="btn btn-danger" onClick={() => setConfirm('demo')}><RefreshCcw size={16} /> بازنشانی به دادهٔ نمایشی</button>
         </div>
       </section>

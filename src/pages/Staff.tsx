@@ -31,8 +31,7 @@ export function Staff() {
     <>
       <div className="page-head">
         <div>
-          <h2>کاربران و پوزیشن‌ها</h2>
-          <p>هر ورود = یک پوزیشن + یک رمز. هر کاربر فقط کاربران با سطح پایین‌تر را مدیریت می‌کند.</p>
+          <p>ورود فقط با رمز است و رمز هر کاربر پوزیشن او را مشخص می‌کند؛ پس رمزها باید یکتا باشند.</p>
         </div>
         <button className="btn btn-primary" onClick={() => setEdit('new')} data-testid="new-user"><UserPlus size={18} /> کاربر جدید</button>
       </div>
@@ -45,7 +44,7 @@ export function Staff() {
               const editable = u.id === me.id || canManageRole(me.role, u.role);
               return (
                 <tr key={u.id}>
-                  <td><div className="row" style={{ flexWrap: 'nowrap' }}><Avatar name={u.name} /><b>{u.name}</b>{u.id === me.id && <span className="badge gold">شما</span>}</div></td>
+                  <td><div className="row" style={{ flexWrap: 'nowrap' }}><Avatar name={u.name} /><b>{u.name}</b>{u.id === me.id && <span className="badge accent">شما</span>}</div></td>
                   <td>{ROLES[u.role].title}</td>
                   <td>
                     {u.active ? <span className="badge good">فعال</span> : <span className="badge">غیرفعال</span>}{' '}
@@ -63,7 +62,7 @@ export function Staff() {
       </div>
 
       <section className="card">
-        <div className="card-head"><h3 className="row" style={{ gap: 8 }}><ShieldCheck size={16} color="var(--gold)" /> ماتریس دسترسی پوزیشن‌ها</h3></div>
+        <div className="card-head"><h3 className="row" style={{ gap: 8 }}><ShieldCheck size={16} color="var(--accent)" /> ماتریس دسترسی پوزیشن‌ها</h3></div>
         <div className="table-wrap">
           <table className="table">
             <thead><tr><th>دسترسی</th>{ROLE_ORDER.map((r) => <th key={r}>{ROLES[r].title}</th>)}</tr></thead>
@@ -76,7 +75,7 @@ export function Staff() {
               ))}
               <tr>
                 <td>سقف تخفیف</td>
-                {ROLE_ORDER.map((r) => <td key={r}><span className="badge gold">{fa(db.settings.discountLimits[r])}٪</span></td>)}
+                {ROLE_ORDER.map((r) => <td key={r}><span className="badge accent">{fa(db.settings.discountLimits[r])}٪</span></td>)}
               </tr>
             </tbody>
           </table>
